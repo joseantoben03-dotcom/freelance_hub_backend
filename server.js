@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 
 import authRoutes from "./routes/auth.js";
 import jobRoutes from "./routes/jobs.js";
+
 import bidRoutes from "./routes/bids.js";
 import paymentRoutes from "./routes/payments.js";
 import ratingRoutes from "./routes/ratings.js";
