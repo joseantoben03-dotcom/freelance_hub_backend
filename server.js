@@ -38,8 +38,11 @@ const connectDB = async () => {
     }
     
     await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
       socketTimeoutMS: 45000,
+      bufferCommands: false, // Disable buffering
+      maxPoolSize: 10,
+      minPoolSize: 2,
     });
     console.log("MongoDB connected successfully");
   } catch (err) {
