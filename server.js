@@ -23,19 +23,15 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Health route (before DB connection)
-app.get("/", (req, res) => res.json({ 
-  message: "backend is running",
-  mongoConnected: mongoose.connection.readyState === 1 
-}));
-
-// MongoDB Connection with better error handling
+// MongoDB Connection - Connect FIRST, then set up routes
 const connectDB = async () => {
   try {
     if (!process.env.MONGODB_URI) {
       console.error("MONGODB_URI is not defined");
       throw new Error("MONGODB_URI environment variable is required");
     }
+    
+    console.log("Attempting to connect to MongoDB...");
     
     await mongoose.connect(process.env.MONGODB_URI, {
       serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
@@ -44,9 +40,11 @@ const connectDB = async () => {
       maxPoolSize: 10,
       minPoolSize: 2,
     });
-    console.log("MongoDB connected successfully");
+    
+    console.log("✅ MongoDB connected successfully");
   } catch (err) {
-    console.error("MongoDB connection error:", err.message);
+    console.error("❌ MongoDB connection error:", err.message);
+    console.error("Full error:", err);
     // Don't exit in serverless, just log the error
     if (process.env.NODE_ENV !== "production") {
       process.exit(1);
@@ -54,10 +52,41 @@ const connectDB = async () => {
   }
 };
 
-// Connect to database
+// Handle MongoDB connection events
+mongoose.connection.on('connected', () => {
+  console.log('Mongoose connected to MongoDB');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('Mongoose connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('Mongoose disconnected from MongoDB');
+});
+
+// Connect to database immediately
 connectDB();
 
-// Routes (register after connection attempt)
+// Health route - NOW it will show the actual connection state
+app.get("/", (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  const states = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  };
+  
+  res.json({ 
+    message: "backend is running",
+    mongoStatus: states[dbState],
+    mongoConnected: dbState === 1,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/bids", bidRoutes);
@@ -84,7 +113,9 @@ app.use((req, res) => {
 // Local dev only
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
 }
 
 // Export for Vercel
