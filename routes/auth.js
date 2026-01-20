@@ -56,4 +56,33 @@ router.post("/login", async (req, res) => {
   }
 })
 
+// Get current user (for auth check)
+router.get("/me", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace("Bearer ", "")
+    if (!token) {
+      return res.status(401).json({ error: "No token provided" })
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret")
+    const user = await User.findById(decoded.userId).select("-password")
+    
+    if (!user) {
+      return res.status(404).json({ error: "User not found" })
+    }
+
+    res.json({ 
+      user: { 
+        id: user._id, 
+        email: user.email, 
+        firstName: user.firstName, 
+        lastName: user.lastName, 
+        role: user.role 
+      } 
+    })
+  } catch (error) {
+    res.status(401).json({ error: "Invalid token" })
+  }
+})
+
 export default router
