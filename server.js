@@ -32,6 +32,8 @@ app.use("/api/ratings", ratingRoutes)
 app.use("/api/disputes", disputeRoutes)
 app.use("/api/admin", adminRoutes)
 
+app.get('/',(req,res)=>res.json({messsage:"backend is running"}))
+
 // const PORT = process.env.PORT || 5000
 // app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
 
